@@ -32,6 +32,23 @@ brew services start ollama
 - `AGENTS.md` — Rules for AI coding agents
 - `GEMINI.md` — Rules for Gemini Code Assist
 - `opencode.json` — OpenCode configuration
+- `.env.example` — Environment variables template
+- `PROJECT_BRIEF.md` — Project goals and requirements
+- `SETUP_GUIDE.md` — Step-by-step setup instructions
+- `OPERATING_ROUTINE.md` — Daily workflow and troubleshooting
+
+## Directories
+- `docs/` — Project documentation and architecture notes
+- `tasks/` — Task lists and TODOs
+- `logs/` — Session logs and debug traces
+- `scripts/` — Automation and helper scripts
+
+## Quick Start
+```bash
+git clone https://github.com/blackbox118811/project-kah-prime-codex.git
+cd project-kah-prime-codex
+cat SETUP_GUIDE.md
+```
 
 ## Git
 ```bash

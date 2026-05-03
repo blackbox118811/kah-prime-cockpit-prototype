@@ -26,7 +26,11 @@
       "dist/**",
       ".git/**",
       ".next/**",
-      "coverage/**"
+      "coverage/**",
+      "logs/**",
+      "tasks/**",
+      "scripts/**",
+      ".env*"
     ]
   }
 }
