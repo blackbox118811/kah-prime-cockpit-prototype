@@ -182,6 +182,19 @@
    - Terminal integration works
    - Git explorer functional
    - **Node.js version**: Requires v22 (current: v25.9.0 ✅)
+   - **Build result (2026-05-03)**: ✅ Built successfully in 23.40s
+     - Client: Vite build with code splitting (2.5MB main bundle after gzip: 760KB)
+     - Server: TypeScript compiled to `dist-server/`
+     - Warnings: Some chunks > 1000KB, CSS syntax warnings in KaTeX
+   - **Server start test (2026-05-03)**: ✅ Server runs successfully
+     - Listens on port 3001 (IPv4)
+     - Detects sessions automatically (Claude, Codex, Cursor, Gemini)
+     - Database initialized at `~/.cloudcli`
+     - **Persistent run**: `nohup npm run server > server.log` keeps process alive (PID 6611)
+     - **HTTP test**: ✅ Responds with HTTP 200, serves HTML/PWA app
+     - **App**: Single-page app with React, CodeMirror, xterm.js
+     - **PWA**: Service worker, manifest.json, iOS meta tags
+   - **Next test**: Open `http://localhost:3001` in browser to test UI
 3. **Install test (chatbot-ui)** — Setup Supabase and run `npm install && npm run dev` to verify:
    - AI SDK multi-model selection works
    - Ollama integration functional
