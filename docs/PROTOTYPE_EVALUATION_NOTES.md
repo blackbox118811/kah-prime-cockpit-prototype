@@ -148,55 +148,60 @@
 | Requires Supabase setup | Medium (complexity) | Consider simpler storage for prototype |
 | No file explorer | Medium (cockpit requirement) | Would need to build file navigation |
 
-## 16. Provisional Recommendation
-**Primary evaluation candidate: claudecodeui (CloudCLI)**
+## 16. Provisional Recommendation & Decision
 
-### Why:
-1. ✅ Terminal support (critical for KAH Prime cockpit)
-2. ✅ Git explorer (critical for cockpit)
-3. ✅ File explorer with live editing
-4. ✅ Multi-agent support (Claude Code, Cursor, Codex, Gemini CLI)
-5. ✅ Session management dashboard
-6. ✅ Mobile + desktop responsive
-7. ✅ Plugin system for extensibility
+### CloudCLI (claudecodeui) Test Result:
+- ✅ Installed, built, server tested on port 3001
+- ✅ HTTP 200 confirmed, serves PWA app with React + CodeMirror + xterm.js
+- ✅ Strong operator workspace candidate (terminal, git explorer, file explorer)
+- ⚠️ AGPL-3.0 remains a major legal/commercial risk
+- ⚠️ No Ollama support (cloud-only: Claude/Cursor/Codex/Gemini)
 
-### Concerns:
-1. ⚠️ AGPL-3.0 license requires legal review before distribution
-2. ⚠️ No Ollama support (cloud-only models)
-3. ⚠️ Additional compliance terms from Siteboon AI B.V.
+### Chatbot UI Test Result:
+- ✅ Installed (1455 packages, 66 vulnerabilities reported)
+- ✅ Build successful (Next.js static generation)
+- ❌ Full app test not completed (requires Supabase setup)
+- ✅ Strong chat UX candidate (AI SDK, multi-model, Ollama support)
+- ❌ Weaker for terminal/git/operator workspace (no terminal, no git explorer, no file explorer)
 
-### Secondary reference: chatbot-ui
-- Use as chat layer inspiration (AI SDK patterns)
-- Reference for Ollama/local model integration
-- MIT license is cleaner for commercial use
+### Decision:
+1. **Do not fork either repo yet**
+2. **Do not install Supabase yet**
+3. **Do not use AGPL code directly inside KAH Prime without legal review**
+4. **Best path**: Build a lightweight KAH Prime prototype in a separate repo using our own code, borrowing UX patterns only
 
-### Canvas/artifact inspiration:
-- Continue referencing `langchain-ai/open-canvas` (archived) for canvas patterns
-- Not suitable as primary base due to lack of terminal/git/file features
+### Secondary reference:
+- Use chatbot-ui as chat layer inspiration (AI SDK patterns)
+- Use claudecodeui as operator workspace inspiration (terminal, git, files)
+- Reference `langchain-ai/open-canvas` (archived) for canvas/artifact patterns
 
-## 17. Next Test Plan
-1. **Legal review** — Have AGPL-3.0 license reviewed by legal counsel before any modification or distribution of claudecodeui
-2. **Install test (claudecodeui)** — Run `npx @cloudcli-ai/cloudcli` and verify:
-   - Starts on port 3001
-   - Discovers existing Claude Code sessions
-   - Terminal integration works
-   - Git explorer functional
-   - **Node.js version**: Requires v22 (current: v25.9.0 ✅)
-3. **Install test (chatbot-ui)** — Setup Supabase and run `npm install && npm run dev` to verify:
-   - AI SDK multi-model selection works
-   - Ollama integration functional
-   - Session management UI
-   - **Node.js version**: Requires v20.11.0 (current: v25.9.0 ✅)
-4. **Install test results (2026-05-03)**:
-   - **claudecodeui**: ✅ 1235 packages, build successful (23.40s), server runs on :3001, HTTP 200
-   - **chatbot-ui**: ✅ 1455 packages, build successful (Next.js static generation), needs Supabase for full dev
-   - **Vulnerabilities**: claudecodeui (35), chatbot-ui (66)
-5. **Integration test** — Verify Gemini CLI works with claudecodeui
-6. **Document findings** — Update this file with install test results
-7. **Decision** — Based on test results, decide:
-   - Fork claudecodeui (after legal approval)
-   - Build custom prototype inspired by both
-   - Wait for better candidate
+## 17. Recommended Next Prototype
+
+### Create a new repo from project-kah-prime-codex template:
+- **Name suggestion**: `kah-prime-cockpit-prototype`
+- **Base**: Separate repo (not inside `~/Omega081180`)
+
+### Build a minimal Next.js shell with:
+1. **Left sidebar** — Project navigation (Projects, Docs, Tasks, Logs, Scripts, Settings)
+2. **Central agent chat/thread** — Primary workspace (inspired by chatbot-ui chat patterns)
+3. **Right context/status panel** — Model, files, git status, health, next action
+4. **Bottom prompt input** — Command/text input bar
+5. **Healthcheck/status card** — Quick system status (reuse `docs/HEALTHCHECK.md` patterns)
+6. **Workflow tracker**: Read → Plan → Approve → Build → Verify → Commit → Push
+
+### Inspiration sources (UX patterns only, no code copying):
+- Chatbot UI (mckaywrigley/chatbot-ui) — MIT, chat layer patterns
+- CloudCLI (siteboon/claudecodeui) — AGPL-3.0, operator workspace layout (do not use code directly)
+- Open Canvas (langchain-ai/open-canvas) — MIT, canvas/artifact patterns
+
+---
+
+## 18. Next Test Plan
+1. **Legal review** — Have AGPL-3.0 license reviewed before any modification or distribution of claudecodeui
+2. **Do not fork either repo yet**
+3. **Do not install Supabase yet**
+4. **Build prototype** — Create `kah-prime-cockpit-prototype` repo with minimal Next.js shell
+5. **Document findings** — Continue updating this file as prototype progresses
 
 ---
 **Document version:** 1.0  
