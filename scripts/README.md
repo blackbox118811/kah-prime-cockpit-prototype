@@ -5,6 +5,7 @@ Automation scripts, health checks, and setup helpers.
 ## Contents
 
 - `README.md` — This file (index)
+- `healthcheck.sh` — Cockpit healthcheck script (tools, git, files, model)
 - Add shell scripts, Node scripts, and automation helpers here.
 
 ## Purpose

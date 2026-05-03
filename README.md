@@ -50,6 +50,15 @@ cd project-kah-prime-codex
 cat SETUP_GUIDE.md
 ```
 
+## Run Healthcheck
+```bash
+bash scripts/healthcheck.sh
+# Or make executable first:
+chmod +x scripts/healthcheck.sh
+./scripts/healthcheck.sh
+```
+See `docs/HEALTHCHECK.md` for details.
+
 ## Git
 ```bash
 git init

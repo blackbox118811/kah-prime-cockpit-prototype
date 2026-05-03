@@ -11,6 +11,7 @@ Project KAH Prime is a local-first AI coding environment using free/open tools.
 5. **Use Plan Mode** — research and plan before executing multi-step changes.
 6. **Stop on failure** — if a command fails, stop and explain the error. Do not silently continue.
 7. **No secrets in commits** — never commit `.env`, API keys, or credentials.
+8. **English only** — all visible output, commit messages, documentation, and comments must be in English. Do not use Chinese or other languages in any visible text.
 
 ## Tool Stack
 - VS Code (editor)

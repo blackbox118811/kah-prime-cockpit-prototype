@@ -10,6 +10,7 @@
 5. When editing files, preserve existing code style and conventions.
 6. Always explain *why* a change is being made before making it.
 7. Test commands before reporting them as solutions.
+8. **English only** — keep all responses, documentation, and comments in English. Never use Chinese or other languages in visible output.
 
 ## Code Style
 - Indent: 2 spaces
