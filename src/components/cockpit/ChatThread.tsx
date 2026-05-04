@@ -17,6 +17,7 @@ export default function ChatThread({ messages }: ChatThreadProps) {
           content={msg.content}
           timestamp={msg.timestamp}
           artifact={msg.artifact}
+          cardType={msg.cardType}
         />
       ))}
     </div>

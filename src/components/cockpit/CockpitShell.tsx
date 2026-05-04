@@ -6,7 +6,7 @@ import CommandInput from "./CommandInput";
 import WorkflowBadges from "./WorkflowBadges";
 import ModeSwitcher from "./ModeSwitcher";
 import { executeCommand } from "@/lib/commandRouter";
-import { Message, CockpitMode, WorkflowStep } from "@/lib/types";
+import { Message, CockpitMode, WorkflowStep, MissionState } from "@/lib/types";
 
 const agentRoles = [
   { name: "Commander", icon: "◈", status: "Active", activity: "Orchestrating", progress: 75, active: true },
@@ -28,51 +28,84 @@ const navItems = [
 const sparkline = [30, 45, 35, 50, 40, 55, 45];
 
 const initialMessages: Message[] = [
-  { id: 1, type: "system", content: "[System] Command router initialized. Type /help for available commands.", timestamp: "09:00" },
-  { id: 2, type: "user", content: "What commands are available?", timestamp: "09:01" },
-  { id: 3, type: "agent", content: "Use /help to see all available commands. I can show status, run mock build, verify, and more.", timestamp: "09:02" },
+  { id: 1, type: "system", content: "[System] Command router initialized. Type /help for available commands.", timestamp: "09:00:00" },
+  { id: 2, type: "user", content: "What commands are available?", timestamp: "09:00:05" },
+  { id: 3, type: "agent", content: "Use /help to see all available commands. I can show status, run mock build, verify, and more.", timestamp: "09:00:10", cardType: "plain" },
 ];
+
+const initialMission: MissionState = {
+  title: "Initializing cockpit",
+  progress: 10,
+  activeMode: "Plan",
+  currentStep: "Plan",
+  lastCommand: "init",
+  logs: ["[09:00:00] System started", "[09:00:00] Command router initialized"],
+};
 
 export default function CockpitShell() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [mode, setMode] = useState<CockpitMode>("Plan");
   const [workflowStep, setWorkflowStep] = useState<WorkflowStep>("Plan");
+  const [mission, setMission] = useState<MissionState>(initialMission);
+
+  const getTime = () => new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   const handleCommand = (input: string) => {
     const userMessage: Message = {
       id: Date.now(),
       type: "user",
       content: input,
-      timestamp: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
+      timestamp: getTime(),
     };
 
-    const result = executeCommand(input, mode, workflowStep);
+    const result = executeCommand(input, mode, workflowStep, mission.title, mission.progress);
 
-    const newMessages = [userMessage, result.message];
+    const logEntry = `[${getTime()}] ${input}`;
 
     if (result.clearFeed) {
       setMessages([
-        { id: Date.now() + 1, type: "system", content: result.message.content, timestamp: result.message.timestamp }
+        { id: Date.now() + 1, type: "system", content: result.message.content, timestamp: getTime(), cardType: result.message.cardType }
       ]);
+      setMission((prev) => ({ ...prev, logs: [...prev.logs, logEntry, `[${getTime()}] Feed cleared`] }));
     } else {
-      setMessages((prev) => [...prev, ...newMessages]);
+      setMessages((prev) => [...prev, userMessage, { ...result.message, timestamp: getTime() }]);
+      setMission((prev) => ({ ...prev, logs: [...prev.logs, logEntry, `[${getTime()}] ${result.message.type}: ${input}`] }));
     }
 
     if (result.newMode) {
       setMode(result.newMode);
+      setMission((prev) => ({ ...prev, activeMode: result.newMode! }));
     }
     if (result.newWorkflowStep) {
       setWorkflowStep(result.newWorkflowStep);
+      setMission((prev) => ({ ...prev, currentStep: result.newWorkflowStep! }));
     }
+    if (result.missionUpdate) {
+      setMission((prev) => ({
+        ...prev,
+        title: result.missionUpdate?.missionTitle || prev.title,
+        progress: result.missionUpdate?.missionProgress || prev.progress,
+      }));
+    }
+    setMission((prev) => ({ ...prev, lastCommand: input }));
   };
 
   const handleModeChange = (newMode: CockpitMode) => {
     setMode(newMode);
-    const result = executeCommand(`/${newMode.toLowerCase()}`, mode, workflowStep);
-    setMessages((prev) => [...prev, result.message]);
+    const result = executeCommand(`/${newMode.toLowerCase()}`, mode, workflowStep, mission.title, mission.progress);
+    setMessages((prev) => [...prev, { ...result.message, timestamp: getTime() }]);
     if (result.newWorkflowStep) {
       setWorkflowStep(result.newWorkflowStep);
+      setMission((prev) => ({ ...prev, currentStep: result.newWorkflowStep! }));
     }
+    if (result.missionUpdate) {
+      setMission((prev) => ({
+        ...prev,
+        title: result.missionUpdate?.missionTitle || prev.title,
+        progress: result.missionUpdate?.missionProgress || prev.progress,
+      }));
+    }
+    setMission((prev) => ({ ...prev, activeMode: newMode, lastCommand: `/${newMode.toLowerCase()}` }));
   };
 
   return (
@@ -278,21 +311,26 @@ export default function CockpitShell() {
             </div>
           </div>
 
-          {/* Current Mission with Progress */}
+          {/* Current Mission with Dynamic Progress */}
           <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
             <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
               <span>◎</span>
               <span>Current Mission</span>
+              <span className="ml-auto text-[10px] px-1.5 py-0.5 bg-[#F47A20]/20 text-[#F47A20] rounded">{mode}</span>
             </div>
-            <p className="text-sm text-[#E6EDF5] mb-3">Restyle cockpit UI to operator console</p>
+            <p className="text-sm text-[#E6EDF5] mb-3">{mission.title}</p>
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-[#6F7C8B]">Progress</span>
-                <span className="text-[#F47A20]">65%</span>
+                <span className="text-[#F47A20]">{mission.progress}%</span>
               </div>
               <div className="h-1.5 bg-[#263140] rounded overflow-hidden">
-                <div className="h-full w-[65%] bg-gradient-to-r from-[#F47A20] to-[#E86A12] rounded-sm"></div>
+                <div className="h-full bg-gradient-to-r from-[#F47A20] to-[#E86A12] rounded-sm transition-all" style={{ width: `${mission.progress}%` }}></div>
               </div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-[#263140] flex justify-between text-[10px]">
+              <span className="text-[#6F7C8B]">Step: {workflowStep}</span>
+              <span className="text-[#A9B4C0]">Last: {mission.lastCommand}</span>
             </div>
           </div>
 
@@ -322,29 +360,20 @@ export default function CockpitShell() {
             </ul>
           </div>
 
-          {/* Live Logs with Colored Dots */}
+          {/* Live Logs - Dynamic */}
           <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
             <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
               <span>⏺</span>
               <span>Live Logs</span>
+              <span className="ml-auto w-2 h-2 rounded-full bg-[#43C174] animate-pulse"></span>
             </div>
-            <div className="font-mono text-xs space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#43C174]"></span>
-                <span className="text-[#43C174]">[10:42:01] UI theme applied</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#43C174]"></span>
-                <span className="text-[#43C174]">[10:42:00] Build passed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#43C174]"></span>
-                <span className="text-[#43C174]">[10:41:58] Lint passed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#A9B4C0] animate-pulse"></span>
-                <span className="text-[#A9B4C0]">[10:41:55] Watching files...</span>
-              </div>
+            <div className="font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
+              {mission.logs.slice(-6).reverse().map((log, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 rounded-full ${idx === 0 ? "bg-[#F47A20] animate-pulse" : "bg-[#43C174]"}`}></span>
+                  <span className={idx === 0 ? "text-[#F47A20]" : "text-[#43C174]"}>{log}</span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -380,24 +409,29 @@ export default function CockpitShell() {
             </div>
           </div>
 
-          {/* Execution Flow with Node Graph */}
+          {/* Execution Flow - Dynamic */}
           <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
             <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
               <span>⟐</span>
               <span>Execution Flow</span>
             </div>
-            <div className="flex items-center gap-1 text-xs">
+            <div className="flex items-center gap-1 text-xs flex-wrap">
               <span className="text-[#43C174]">●</span>
               <span className="text-[#A9B4C0]">Ready</span>
               <span className="text-[#263140]">━━</span>
-              <span className="w-4 h-4 rounded-full bg-[#F47A20] flex items-center justify-center text-[8px] text-[#0B0F14]">1</span>
-              <span className="text-[#F47A20]">Plan</span>
-              <span className="text-[#263140]">━</span>
-              <span className="w-4 h-4 rounded-full bg-[#263140] flex items-center justify-center text-[8px] text-[#6F7C8B]">2</span>
-              <span className="text-[#6F7C8B]">Build</span>
-              <span className="text-[#263140]">━</span>
-              <span className="w-4 h-4 rounded-full bg-[#263140] flex items-center justify-center text-[8px] text-[#6F7C8B]">3</span>
-              <span className="text-[#6F7C8B]">Verify</span>
+              {["Plan", "Build", "Verify"].map((step, idx) => {
+                const isCurrent = workflowStep === step;
+                const stepNum = idx + 1;
+                return (
+                  <span key={step} className="flex items-center">
+                    <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[8px] ${isCurrent ? "bg-[#F47A20] text-[#0B0F14]" : "bg-[#263140] text-[#6F7C8B]"}`}>
+                      {stepNum}
+                    </span>
+                    <span className={isCurrent ? "text-[#F47A20]" : "text-[#6F7C8B]"}>{step}</span>
+                    {step !== "Verify" && <span className="text-[#263140]">━</span>}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -1,13 +1,16 @@
 "use client";
 
+import { CardType } from "@/lib/types";
+
 interface MessageBubbleProps {
   type: "user" | "agent" | "system";
   content: string;
   timestamp?: string;
   artifact?: string;
+  cardType?: CardType;
 }
 
-export default function MessageBubble({ type, content, timestamp, artifact }: MessageBubbleProps) {
+export default function MessageBubble({ type, content, timestamp, artifact, cardType }: MessageBubbleProps) {
   const typeStyles = {
     user: {
       bg: "bg-[#151D27]",
@@ -37,6 +40,30 @@ export default function MessageBubble({ type, content, timestamp, artifact }: Me
 
   const style = typeStyles[type];
 
+  const renderCardContent = () => {
+    if (!cardType || cardType === "plain") {
+      return (
+        <p className="text-sm text-[#E6EDF5] leading-relaxed whitespace-pre-wrap">{content}</p>
+      );
+    }
+
+    const cardStyles: Record<CardType, string> = {
+      "command-menu": "font-mono text-xs text-[#43C174] bg-[#0F141B] border-[#43C174]/30",
+      "status-card": "font-mono text-xs text-[#A9B4C0] bg-[#121922] border-[#263140]",
+      "git-card": "font-mono text-xs text-[#A9B4C0] bg-[#121922] border-[#263140]",
+      "health-card": "font-mono text-xs text-[#A9B4C0] bg-[#121922] border-[#263140]",
+      "checklist-card": "font-mono text-xs text-[#43C174] bg-[#121922] border-[#263140]",
+      "log-card": "font-mono text-xs text-[#6F7C8B] bg-[#0F141B] border-[#263140]",
+      "plain": "text-sm text-[#E6EDF5]",
+    };
+
+    return (
+      <pre className={`p-3 rounded-lg border ${cardStyles[cardType]} overflow-x-auto`}>
+        {content}
+      </pre>
+    );
+  };
+
   return (
     <div className="group relative">
       <div className="flex gap-3 py-3 hover:bg-[#151D27]/30 rounded-lg transition-colors">
@@ -55,6 +82,11 @@ export default function MessageBubble({ type, content, timestamp, artifact }: Me
             <span className={`text-xs font-semibold ${style.labelColor}`}>{style.label}</span>
             {timestamp && <span className="text-[10px] text-[#6F7C8B] font-mono">{timestamp}</span>}
             <span className="flex-1 h-px bg-[#263140]"></span>
+            {cardType && cardType !== "plain" && (
+              <span className="text-[10px] px-2 py-0.5 bg-[#F47A20]/20 rounded text-[#F47A20] uppercase">
+                {cardType.replace("-", " ")}
+              </span>
+            )}
             {artifact && (
               <span className="text-[10px] px-2 py-0.5 bg-[#263140] rounded text-[#A9B4C0] flex items-center gap-1">
                 <span>📄</span>
@@ -64,9 +96,7 @@ export default function MessageBubble({ type, content, timestamp, artifact }: Me
           </div>
 
           {/* Message Body */}
-          <div className={`p-3 rounded-lg ${style.bg} border ${style.border}`}>
-            <p className="text-sm text-[#E6EDF5] leading-relaxed">{content}</p>
-          </div>
+          {renderCardContent()}
         </div>
 
         {/* Status Indicator */}
