@@ -45,3 +45,6 @@ secrets/
 
 # Next.js generated TypeScript environment
 next-env.d.ts
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
