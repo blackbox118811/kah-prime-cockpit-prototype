@@ -35,16 +35,19 @@ Normal text is treated as operator input.`;
     }
 
     case "/status": {
-      const statusContent = `┌─ Cockpit Status ───────────────────┐
-│ Mode          │ ${currentMode.padEnd(16)}│
-│ Workflow Step │ ${currentWorkflow.padEnd(16)}│
-│ Mission       │ ${currentMission.substring(0, 16).padEnd(16)}│
-│ Progress      │ ${String(currentProgress + "%").padEnd(16)}│
-│ Git Status    │ Clean               │
-│ Health        │ OK                  │
-│ Backend       │ Not connected       │
-│ AI Provider   │ Not connected       │
-└─────────────────────────────────────┘`;
+      const missionLine = currentMission.length > 20 
+        ? `│ Mission       │ ${currentMission.substring(0, 20)}... │`
+        : `│ Mission       │ ${currentMission.padEnd(20)}│`;
+      const statusContent = `┌─ Cockpit Status ─────────────────────┐
+│ Mode          │ ${currentMode.padEnd(18)}│
+│ Workflow Step │ ${currentWorkflow.padEnd(18)}│
+${missionLine}
+│ Progress      │ ${String(currentProgress + "%").padEnd(18)}│
+│ Git Status    │ Clean                │
+│ Health        │ OK                   │
+│ Backend       │ Not connected        │
+│ AI Provider   │ Not connected        │
+└────────────────────────────────────────┘`;
       return { message: createMessage("agent", statusContent, "status-card") };
     }
 
@@ -106,7 +109,7 @@ Simulating build process...
 │ Branch        │ main              │
 │ Remote        │ origin/main       │
 │ Working Tree  │ Clean             │
-│ Last Commit   │ 1f91ae0           │
+│ Last Commit   │ 8102ddc           │
 │ Mode          │ Read-only mock    │
 └─────────────────────────────────────┘
 
@@ -134,6 +137,13 @@ Simulating build process...
     }
 
     default: {
+      const inputParts = input.trim().split(/\s+/);
+      const slashCount = inputParts.filter(p => p.startsWith("/")).length;
+      
+      if (slashCount > 1) {
+        return { message: createMessage("system", "Multiple commands in one line are not supported yet.\n\nRun one command at a time.", "log-card") };
+      }
+      
       if (trimmed.startsWith("/")) {
         return { message: createMessage("system", `Unknown command: ${input}\n\nType /help for available commands.`, "log-card") };
       }
