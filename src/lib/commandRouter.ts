@@ -1,4 +1,5 @@
 import { CommandResult, Message, CockpitMode, WorkflowStep, CardType } from "./types";
+import { cockpitContext } from "./cockpitContext";
 
 const getTime = () => {
   const now = new Date();
@@ -35,19 +36,21 @@ Normal text is treated as operator input.`;
     }
 
     case "/status": {
+      const ctx = cockpitContext;
       const missionLine = currentMission.length > 20 
         ? `│ Mission       │ ${currentMission.substring(0, 20)}... │`
         : `│ Mission       │ ${currentMission.padEnd(20)}│`;
-      const statusContent = `┌─ Cockpit Status ─────────────────────┐
+      const statusContent = `┌─ Cockpit Status (Read-only Snapshot) ─┐
 │ Mode          │ ${currentMode.padEnd(18)}│
 │ Workflow Step │ ${currentWorkflow.padEnd(18)}│
 ${missionLine}
 │ Progress      │ ${String(currentProgress + "%").padEnd(18)}│
-│ Git Status    │ Clean                │
-│ Health        │ OK                   │
-│ Backend       │ Not connected        │
-│ AI Provider   │ Not connected        │
-└────────────────────────────────────────┘`;
+│ Git Status    │ ${ctx.git.workingTree.padEnd(18)}│
+│ Health        │ ${ctx.system.uiStatus.padEnd(18)}│
+│ Backend       │ ${ctx.system.backendStatus.padEnd(18)}│
+│ AI Provider   │ ${ctx.system.aiProviderStatus.padEnd(18)}│
+└─────────────────────────────────────────────┘
+${ctx.meta.snapshotType} - ${ctx.meta.lastVerifiedAt}`;
       return { message: createMessage("agent", statusContent, "status-card") };
     }
 
@@ -105,27 +108,32 @@ Simulating build process...
     }
 
     case "/git": {
+      const ctx = cockpitContext.git;
       const gitContent = `┌─ Git Status ────────────────────────┐
-│ Branch        │ main              │
-│ Remote        │ origin/main       │
-│ Working Tree  │ Clean             │
-│ Last Commit   │ 8102ddc           │
-│ Mode          │ Read-only mock    │
+│ Branch        │ ${ctx.branch.padEnd(17)}│
+│ Remote        │ ${ctx.remote.padEnd(17)}│
+│ Working Tree  │ ${ctx.workingTree.padEnd(17)}│
+│ Latest Known  │ ${ctx.latestKnownCommit.padEnd(17)}│
+│ Mode          │ ${ctx.mode.padEnd(17)}│
 └─────────────────────────────────────┘
 
-🔒 No git commands executed.`;
+🔒 ${cockpitContext.meta.snapshotType}
+⚠ No git commands executed.`;
       return { message: createMessage("agent", gitContent, "git-card") };
     }
 
     case "/health": {
+      const ctx = cockpitContext.system;
       const healthContent = `┌─ System Health ─────────────────────┐
-│ UI              │ OK ✓            │
-│ Command Router  │ OK ✓            │
-│ Backend         │ Not connected ⚠ │
-│ AI Provider     │ Not connected ⚠ │
-│ Terminal        │ Disabled ✗      │
-│ Safety Gate     │ Active ✓        │
-└─────────────────────────────────────┘`;
+│ UI              │ ${ctx.uiStatus.padEnd(15)}│
+│ Command Router  │ ${ctx.commandRouterStatus.padEnd(15)}│
+│ Backend         │ ${ctx.backendStatus.padEnd(15)}│
+│ AI Provider     │ ${ctx.aiProviderStatus.padEnd(15)}│
+│ Terminal        │ ${ctx.terminalStatus.padEnd(15)}│
+│ Safety Gate     │ ${ctx.safetyGate.padEnd(15)}│
+└─────────────────────────────────────┘
+
+${cockpitContext.meta.snapshotType}`;
       return { message: createMessage("agent", healthContent, "health-card") };
     }
 

@@ -6,6 +6,7 @@ import CommandInput from "./CommandInput";
 import WorkflowBadges from "./WorkflowBadges";
 import ModeSwitcher from "./ModeSwitcher";
 import { executeCommand } from "@/lib/commandRouter";
+import { cockpitContext } from "@/lib/cockpitContext";
 import { Message, CockpitMode, WorkflowStep, MissionState } from "@/lib/types";
 
 const agentRoles = [
@@ -303,11 +304,14 @@ export default function CockpitShell() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm">📁</span>
-              <p className="text-sm text-[#A9B4C0] font-mono">kah-prime-cockpit-prototype</p>
+              <p className="text-sm text-[#A9B4C0] font-mono">{cockpitContext.project.repoName}</p>
             </div>
             <div className="mt-2 flex gap-2">
               <span className="text-[10px] px-2 py-0.5 bg-[#263140] rounded text-[#6F7C8B]">src/</span>
-              <span className="text-[10px] px-2 py-0.5 bg-[#263140] rounded text-[#6F7C8B]">12 files</span>
+              <span className="text-[10px] px-2 py-0.5 bg-[#263140] rounded text-[#6F7C8B]">branch: {cockpitContext.git.branch}</span>
+            </div>
+            <div className="mt-2 pt-2 border-t border-[#263140]">
+              <span className="text-[10px] text-[#6F7C8B]">Latest: {cockpitContext.git.latestKnownCommit}</span>
             </div>
           </div>
 
@@ -432,6 +436,24 @@ export default function CockpitShell() {
                   </span>
                 );
               })}
+            </div>
+            <div className="mt-3 pt-3 border-t border-[#263140] text-[10px] text-[#6F7C8B]">
+              <div className="flex justify-between">
+                <span>Backend:</span>
+                <span className="text-[#A9B4C0]">{cockpitContext.system.backendStatus}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>AI Provider:</span>
+                <span className="text-[#A9B4C0]">{cockpitContext.system.aiProviderStatus}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Terminal:</span>
+                <span className="text-[#A9B4C0]">{cockpitContext.system.terminalStatus}</span>
+              </div>
+              <div className="flex justify-between mt-1 pt-1 border-t border-[#263140]">
+                <span>Safety Gate:</span>
+                <span className="text-[#43C174]">{cockpitContext.system.safetyGate}</span>
+              </div>
             </div>
           </div>
         </div>
