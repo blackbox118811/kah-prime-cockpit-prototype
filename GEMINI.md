@@ -22,3 +22,6 @@
 - Runtime: Ollama
 - Model: qwen2.5-coder:7b
 - Test with: `ollama run qwen2.5-coder:7b "hello"`
+
+## Git Truth Protocol
+Follow the Git Truth Protocol and Handoff Honesty Rule in AGENTS.md exactly. Always cite command output as your source of truth.

@@ -26,3 +26,57 @@ Project KAH Prime is a local-first AI coding environment using free/open tools.
 - Commit messages: concise, imperative mood ("add", "fix", "update")
 - Never force-push unless explicitly requested
 - Never `git add .` — stage files explicitly
+
+## Git Truth Protocol — Mandatory
+
+1. Never claim the branch is ahead, behind, diverged, clean, dirty, pushed, or unpushed unless command output proves it.
+
+2. Before reporting sync status, run:
+
+   git fetch origin
+   git status -sb
+   git rev-list --left-right --count origin/main...HEAD
+   git log --oneline -5
+
+3. Interpret ahead/behind exactly:
+   - rev-list output `0 0` means local and origin/main are aligned.
+   - `0 N` means local is N commits ahead of origin/main.
+   - `N 0` means local is N commits behind origin/main.
+   - `A B` where both are non-zero means branches have diverged.
+
+4. If `git status -sb` shows:
+   `## main...origin/main`
+   with no ahead/behind marker, report:
+   "Local main and origin/main are aligned."
+
+5. Never infer ahead/behind from the number of commits in `git log`.
+
+6. Never say "branch is X commits ahead" from stale memory, previous handoff text, or model reasoning.
+
+7. If command output conflicts with previous model claims, command output wins.
+
+8. If `origin/main` is unknown, say:
+   "origin/main is not available locally; run git fetch origin first."
+
+9. If a claim was wrong, explicitly correct it:
+   "Correction: previous ahead/behind claim was not supported by Git evidence."
+
+10. Every handoff report must include a Git Evidence Block:
+
+   Git Evidence:
+   - `git status -sb`: <exact result>
+   - `git rev-list --left-right --count origin/main...HEAD`: <exact result>
+   - Interpretation: <aligned/ahead/behind/diverged>
+
+## Handoff Honesty Rule
+
+Do not write:
+- "ready"
+- "complete"
+- "pushed"
+- "clean"
+- "ahead"
+- "aligned"
+- "verified"
+
+unless the relevant command output has been shown in the same session.
