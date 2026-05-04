@@ -5,6 +5,7 @@ export interface Message {
   type: "user" | "agent" | "system";
   content: string;
   timestamp?: string;
+  artifact?: string;
 }
 
 export default function MockHistory(): Message[] {

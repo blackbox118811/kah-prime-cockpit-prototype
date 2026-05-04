@@ -7,23 +7,34 @@ type Mode = "Plan" | "Build" | "Verify";
 export default function ModeSwitcher() {
   const [mode, setMode] = useState<Mode>("Plan");
 
-  const modeColors = {
-    Plan: "bg-yellow-600 hover:bg-yellow-700",
-    Build: "bg-blue-600 hover:bg-blue-700",
-    Verify: "bg-green-600 hover:bg-green-700",
+  const modeStyles = {
+    Plan: {
+      active: "bg-[#F47A20]/20 text-[#F47A20] border-[#F47A20]",
+      inactive: "bg-[#151D27] text-[#6F7C8B] border-[#263140] hover:border-[#F47A20]/50",
+    },
+    Build: {
+      active: "bg-[#43C174]/20 text-[#43C174] border-[#43C174]",
+      inactive: "bg-[#151D27] text-[#6F7C8B] border-[#263140] hover:border-[#43C174]/50",
+    },
+    Verify: {
+      active: "bg-[#A9B4C0]/20 text-[#A9B4C0] border-[#A9B4C0]",
+      inactive: "bg-[#151D27] text-[#6F7C8B] border-[#263140] hover:border-[#A9B4C0]/50",
+    },
   };
 
   return (
     <div className="flex gap-1">
-      {(Object.keys(modeColors) as Mode[]).map((m) => (
+      {(Object.keys(modeStyles) as Mode[]).map((m) => (
         <button
           key={m}
           onClick={() => setMode(m)}
-          className={`px-3 py-1 text-xs rounded-full text-white transition-colors ${
-            mode === m ? modeColors[m] : "bg-gray-700 hover:bg-gray-600"
+          className={`px-3 py-1 text-xs rounded border transition-all ${
+            mode === m
+              ? modeStyles[m].active
+              : modeStyles[m].inactive
           }`}
         >
-          {m} Mode
+          {m}
         </button>
       ))}
     </div>
