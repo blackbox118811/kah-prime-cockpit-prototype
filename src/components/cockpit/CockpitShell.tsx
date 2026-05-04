@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import ChatThread from "./ChatThread";
 import CommandInput from "./CommandInput";
 import WorkflowBadges from "./WorkflowBadges";
 import ModeSwitcher from "./ModeSwitcher";
+import { executeCommand } from "@/lib/commandRouter";
+import { Message, CockpitMode, WorkflowStep } from "@/lib/types";
 
 const agentRoles = [
   { name: "Commander", icon: "◈", status: "Active", activity: "Orchestrating", progress: 75, active: true },
@@ -24,7 +27,54 @@ const navItems = [
 
 const sparkline = [30, 45, 35, 50, 40, 55, 45];
 
+const initialMessages: Message[] = [
+  { id: 1, type: "system", content: "[System] Command router initialized. Type /help for available commands.", timestamp: "09:00" },
+  { id: 2, type: "user", content: "What commands are available?", timestamp: "09:01" },
+  { id: 3, type: "agent", content: "Use /help to see all available commands. I can show status, run mock build, verify, and more.", timestamp: "09:02" },
+];
+
 export default function CockpitShell() {
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [mode, setMode] = useState<CockpitMode>("Plan");
+  const [workflowStep, setWorkflowStep] = useState<WorkflowStep>("Plan");
+
+  const handleCommand = (input: string) => {
+    const userMessage: Message = {
+      id: Date.now(),
+      type: "user",
+      content: input,
+      timestamp: new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit" }),
+    };
+
+    const result = executeCommand(input, mode, workflowStep);
+
+    const newMessages = [userMessage, result.message];
+
+    if (result.clearFeed) {
+      setMessages([
+        { id: Date.now() + 1, type: "system", content: result.message.content, timestamp: result.message.timestamp }
+      ]);
+    } else {
+      setMessages((prev) => [...prev, ...newMessages]);
+    }
+
+    if (result.newMode) {
+      setMode(result.newMode);
+    }
+    if (result.newWorkflowStep) {
+      setWorkflowStep(result.newWorkflowStep);
+    }
+  };
+
+  const handleModeChange = (newMode: CockpitMode) => {
+    setMode(newMode);
+    const result = executeCommand(`/${newMode.toLowerCase()}`, mode, workflowStep);
+    setMessages((prev) => [...prev, result.message]);
+    if (result.newWorkflowStep) {
+      setWorkflowStep(result.newWorkflowStep);
+    }
+  };
+
   return (
     <main className="flex min-h-screen bg-[#0B0F14] text-[#E6EDF5]">
       {/* Top Status Bar - Richer Command Center */}
@@ -48,7 +98,7 @@ export default function CockpitShell() {
             <span className="w-1 h-1 rounded-full bg-[#43C174]"></span>
           </div>
 
-          <ModeSwitcher />
+          <ModeSwitcher currentMode={mode} onModeChange={handleModeChange} />
 
           {/* Latency Card with Micro Graph */}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#151D27] rounded border border-[#263140]">
@@ -194,18 +244,18 @@ export default function CockpitShell() {
         {/* Workflow Strip - Stronger Visual States */}
         <div className="px-4 py-3 bg-[#0F141B] border-b border-[#1F2A36]">
           <div className="flex items-center gap-2">
-            <WorkflowBadges />
+            <WorkflowBadges currentStep={workflowStep} />
           </div>
         </div>
 
         {/* Chat Thread Area - Richer Operator Thread */}
         <div className="flex-1 p-4 overflow-auto bg-[#0B0F14]">
-          <ChatThread />
+          <ChatThread messages={messages} />
         </div>
 
         {/* Command Input Dock - Launch Dock */}
         <div className="p-4 bg-[#10161D] border-t border-[#263140]">
-          <CommandInput />
+          <CommandInput onCommand={handleCommand} currentMode={mode} />
         </div>
       </section>
 

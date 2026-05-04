@@ -1,15 +1,25 @@
 "use client";
 
 import { useState } from "react";
+import { CockpitMode } from "@/lib/types";
 
-export default function CommandInput() {
+interface CommandInputProps {
+  onCommand: (input: string) => void;
+  currentMode: CockpitMode;
+}
+
+export default function CommandInput({ onCommand, currentMode }: CommandInputProps) {
   const [input, setInput] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    console.log("Mock submit:", input);
+    onCommand(input);
     setInput("");
+  };
+
+  const handleQuickCommand = (cmd: string) => {
+    onCommand(cmd);
   };
 
   return (
@@ -40,24 +50,42 @@ export default function CommandInput() {
       {/* Helper Hints */}
       <div className="flex items-center gap-2 text-[10px] text-[#6F7C8B]">
         <span>Try:</span>
-        <span className="px-2 py-0.5 bg-[#151D27] rounded text-[#A9B4C0]">analyze this</span>
-        <span className="px-2 py-0.5 bg-[#151D27] rounded text-[#A9B4C0]">write tests</span>
-        <span className="px-2 py-0.5 bg-[#151D27] rounded text-[#A9B4C0]">refactor</span>
+        <button onClick={() => handleQuickCommand("/help")} className="px-2 py-0.5 bg-[#151D27] rounded text-[#A9B4C0] hover:text-[#F47A20] transition-colors">/help</button>
+        <button onClick={() => handleQuickCommand("/status")} className="px-2 py-0.5 bg-[#151D27] rounded text-[#A9B4C0] hover:text-[#F47A20] transition-colors">/status</button>
+        <button onClick={() => handleQuickCommand("/health")} className="px-2 py-0.5 bg-[#151D27] rounded text-[#A9B4C0] hover:text-[#F47A20] transition-colors">/health</button>
       </div>
 
       {/* Bottom Action Buttons */}
       <div className="flex items-center gap-2">
-        <button className="px-4 py-2 bg-[#F47A20]/20 text-[#F47A20] border border-[#F47A20] text-xs font-semibold rounded-lg hover:bg-[#F47A20]/30 transition-all">
+        <button 
+          onClick={() => handleQuickCommand("/plan")}
+          className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+            currentMode === "Plan" 
+              ? "bg-[#F47A20] text-[#0B0F14]" 
+              : "bg-[#F47A20]/20 text-[#F47A20] border border-[#F47A20] hover:bg-[#F47A20]/30"
+          }`}
+        >
           Plan
         </button>
-        <button className="px-4 py-2 bg-[#151D27] text-[#A9B4C0] border border-[#263140] text-xs font-medium rounded-lg hover:border-[#F47A20]/50 hover:text-[#E6EDF5] transition-all">
+        <button 
+          onClick={() => handleQuickCommand("/build")}
+          className={`px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+            currentMode === "Build" 
+              ? "bg-[#43C174] text-[#0B0F14]" 
+              : "bg-[#151D27] text-[#A9B4C0] border border-[#263140] hover:border-[#43C174]/50 hover:text-[#E6EDF5]"
+          }`}
+        >
           Build
         </button>
-        <button className="px-4 py-2 bg-[#151D27] text-[#A9B4C0] border border-[#263140] text-xs font-medium rounded-lg hover:border-[#F47A20]/50 hover:text-[#E6EDF5] transition-all">
-          Review
-        </button>
-        <button className="px-4 py-2 bg-[#151D27] text-[#A9B4C0] border border-[#263140] text-xs font-medium rounded-lg hover:border-[#F47A20]/50 hover:text-[#E6EDF5] transition-all">
-          Run
+        <button 
+          onClick={() => handleQuickCommand("/verify")}
+          className={`px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+            currentMode === "Verify" 
+              ? "bg-[#A9B4C0] text-[#0B0F14]" 
+              : "bg-[#151D27] text-[#A9B4C0] border border-[#263140] hover:border-[#A9B4C0]/50 hover:text-[#E6EDF5]"
+          }`}
+        >
+          Verify
         </button>
       </div>
     </div>

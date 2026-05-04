@@ -1,11 +1,13 @@
 "use client";
 
 import MessageBubble from "./MessageBubble";
-import MockHistory from "./MockHistory";
+import { Message } from "@/lib/types";
 
-export default function ChatThread() {
-  const messages = MockHistory();
+interface ChatThreadProps {
+  messages: Message[];
+}
 
+export default function ChatThread({ messages }: ChatThreadProps) {
   return (
     <div className="space-y-0">
       {messages.map((msg) => (
