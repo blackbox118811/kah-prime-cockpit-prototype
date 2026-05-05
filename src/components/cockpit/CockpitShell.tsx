@@ -148,11 +148,16 @@ export default function CockpitShell() {
   };
 
   return (
-    <main className="flex min-h-screen bg-[#0B0F14] text-[#E6EDF5]">
+    <main className="h-screen flex flex-col overflow-hidden bg-[#0B0F14] text-[#E6EDF5]">
       {/* Top Status Bar - Richer Command Center */}
-      <div className="fixed top-0 left-0 right-0 h-14 bg-[#10161D] border-b border-[#263140] z-50 flex items-center px-5 justify-between">
+      <div className="h-14 flex-shrink-0 bg-[#10161D] border-b border-[#263140] z-50 flex items-center px-5 justify-between">
         {/* Brand Block */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <img 
+            src="/branding/kah-prime-logo-source.png" 
+            alt="KAH" 
+            className="h-7 w-7 object-contain opacity-80"
+          />
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-gradient-orange">KAH</span>
             <span className="text-sm font-semibold text-[#E6EDF5]">Prime</span>
@@ -202,8 +207,10 @@ export default function CockpitShell() {
         </div>
       </div>
 
-      {/* Left Sidebar - Richer System Overview */}
-      <aside className="w-60 bg-[#121922] border-r border-[#263140] pt-14 pb-4 flex flex-col">
+      {/* Flex wrapper for sidebar + main + right rail */}
+      <div className="flex flex-1 min-h-0 overflow-hidden pt-14">
+        {/* Left Sidebar - Richer System Overview */}
+        <aside className="w-60 flex-shrink-0 bg-[#121922] border-r border-[#263140] pb-4 flex flex-col min-h-0 overflow-y-auto">
         <nav className="px-3 space-y-1">
           {navItems.map((item) => (
             <a
@@ -270,7 +277,15 @@ export default function CockpitShell() {
       </aside>
 
       {/* Central Workspace */}
-      <section className="flex-1 flex flex-col pt-14 border-r border-[#263140]">
+      <section className="flex-1 flex flex-col min-h-0 border-r border-[#263140] relative overflow-hidden">
+        {/* Watermark - behind feed only */}
+        <div className="absolute inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden opacity-[0.03]">
+          <img 
+            src="/branding/kah-prime-logo-source.png" 
+            alt="" 
+            className="w-full h-full object-cover grayscale"
+          />
+        </div>
         {/* Agent Status Cards - Real Status Cards */}
         <div className="flex gap-3 p-4 bg-[#10161D] border-b border-[#263140] overflow-x">
           {agentRoles.map((role) => (
@@ -321,18 +336,18 @@ export default function CockpitShell() {
         </div>
 
         {/* Chat Thread Area - Richer Operator Thread */}
-        <div className="flex-1 p-4 overflow-auto bg-[#0B0F14]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#0B0F14] relative z-10">
           <ChatThread messages={messages} />
         </div>
 
         {/* Command Input Dock - Launch Dock */}
-        <div className="p-4 bg-[#10161D] border-t border-[#263140]">
+        <div className="shrink-0 p-4 bg-[#10161D] border-t border-[#263140] relative z-10">
           <CommandInput onCommand={handleCommand} currentMode={mode} />
         </div>
       </section>
 
       {/* Right Context Panel - Richer Mission Console */}
-      <aside className="w-76 bg-[#121922] pt-14 pb-4 overflow-auto">
+      <aside className="w-76 flex-shrink-0 bg-[#121922] pb-4 min-h-0 overflow-y-auto">
         <div className="px-4 space-y-4">
           {/* Active Context with Icons */}
           <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
@@ -587,6 +602,7 @@ export default function CockpitShell() {
           </div>
         </div>
       </aside>
+      </div>
     </main>
   );
 }
