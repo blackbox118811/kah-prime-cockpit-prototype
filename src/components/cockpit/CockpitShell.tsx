@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ChatThread from "./ChatThread";
 import CommandInput from "./CommandInput";
 import WorkflowBadges from "./WorkflowBadges";
 import ModeSwitcher from "./ModeSwitcher";
 import { executeCommand } from "@/lib/commandRouter";
 import { cockpitContext } from "@/lib/cockpitContext";
-import { Message, CockpitMode, WorkflowStep, MissionState } from "@/lib/types";
+import { Message, CockpitMode, WorkflowStep, MissionState, SessionEvent } from "@/lib/types";
+import { createSessionEvent, loadSessionMemory, saveSessionMemory, clearSessionMemory } from "@/lib/sessionMemory";
 
 const agentRoles = [
   { name: "Commander", icon: "◈", status: "Active", activity: "Orchestrating", progress: 75, active: true },
@@ -48,6 +49,17 @@ export default function CockpitShell() {
   const [mode, setMode] = useState<CockpitMode>("Plan");
   const [workflowStep, setWorkflowStep] = useState<WorkflowStep>("Plan");
   const [mission, setMission] = useState<MissionState>(initialMission);
+  const [sessionEvents, setSessionEvents] = useState<SessionEvent[]>([]);
+
+  useEffect(() => {
+    const loaded = loadSessionMemory();
+    if (loaded && loaded.sessionEvents.length > 0) {
+      setSessionEvents(loaded.sessionEvents);
+      if (loaded.lastCommand) {
+        setMission((prev) => ({ ...prev, lastCommand: loaded.lastCommand }));
+      }
+    }
+  }, []);
 
   const getTime = () => new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
@@ -59,21 +71,43 @@ export default function CockpitShell() {
       timestamp: getTime(),
     };
 
-    const result = executeCommand(input, mode, workflowStep, mission.title, mission.progress);
+    const result = executeCommand(input, mode, workflowStep, mission.title, mission.progress, sessionEvents);
 
     const logEntry = `[${getTime()}] ${input}`;
 
+    const newEvent = createSessionEvent("command_executed", input, `Executed in ${mode} mode`, { command: input, mode, workflowStep });
+    const updatedEvents = [...sessionEvents, newEvent];
+
+    if (result.resetSession) {
+      clearSessionMemory();
+      setSessionEvents([]);
+      setMessages([
+        { id: Date.now() + 1, type: "system", content: result.message.content, timestamp: getTime(), cardType: result.message.cardType }
+      ]);
+      setMission((prev) => ({ ...prev, logs: [...prev.logs, logEntry, `[${getTime()}] Session reset`] }));
+      return;
+    }
+
     if (result.clearFeed) {
+      const clearEvent = createSessionEvent("feed_cleared", "Feed cleared", `Feed cleared while in ${mode} mode`, { mode });
+      const eventsWithClear = [...updatedEvents, clearEvent];
+      setSessionEvents(eventsWithClear);
+      saveSessionMemory({ sessionEvents: eventsWithClear, commandCount: eventsWithClear.filter(e => e.type === "command_executed").length, lastCommand: input, modeHistory: [], sessionStartTime: sessionEvents[0]?.timestamp || new Date().toISOString() });
       setMessages([
         { id: Date.now() + 1, type: "system", content: result.message.content, timestamp: getTime(), cardType: result.message.cardType }
       ]);
       setMission((prev) => ({ ...prev, logs: [...prev.logs, logEntry, `[${getTime()}] Feed cleared`] }));
     } else {
+      setSessionEvents(updatedEvents);
+      saveSessionMemory({ sessionEvents: updatedEvents, commandCount: updatedEvents.filter(e => e.type === "command_executed").length, lastCommand: input, modeHistory: [], sessionStartTime: sessionEvents[0]?.timestamp || new Date().toISOString() });
       setMessages((prev) => [...prev, userMessage, { ...result.message, timestamp: getTime() }]);
       setMission((prev) => ({ ...prev, logs: [...prev.logs, logEntry, `[${getTime()}] ${result.message.type}: ${input}`] }));
     }
 
     if (result.newMode) {
+      const modeEvent = createSessionEvent("mode_changed", `${result.newMode} mode activated`, `Mode changed from ${mode} to ${result.newMode}`, { mode: result.newMode, command: input });
+      const eventsWithMode = [...sessionEvents, newEvent, modeEvent];
+      setSessionEvents(eventsWithMode);
       setMode(result.newMode);
       setMission((prev) => ({ ...prev, activeMode: result.newMode! }));
     }
@@ -92,8 +126,12 @@ export default function CockpitShell() {
   };
 
   const handleModeChange = (newMode: CockpitMode) => {
+    const modeEvent = createSessionEvent("mode_changed", `${newMode} mode activated`, `Mode changed via switcher`, { mode: newMode, command: `/${newMode.toLowerCase()}` });
+    const updatedEvents = [...sessionEvents, modeEvent];
+    setSessionEvents(updatedEvents);
+    saveSessionMemory({ sessionEvents: updatedEvents, commandCount: updatedEvents.filter(e => e.type === "command_executed").length, lastCommand: `/${newMode.toLowerCase()}`, modeHistory: [], sessionStartTime: sessionEvents[0]?.timestamp || new Date().toISOString() });
     setMode(newMode);
-    const result = executeCommand(`/${newMode.toLowerCase()}`, mode, workflowStep, mission.title, mission.progress);
+    const result = executeCommand(`/${newMode.toLowerCase()}`, mode, workflowStep, mission.title, mission.progress, sessionEvents);
     setMessages((prev) => [...prev, { ...result.message, timestamp: getTime() }]);
     if (result.newWorkflowStep) {
       setWorkflowStep(result.newWorkflowStep);
@@ -454,6 +492,97 @@ export default function CockpitShell() {
                 <span>Safety Gate:</span>
                 <span className="text-[#43C174]">{cockpitContext.system.safetyGate}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Session Memory */}
+          <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
+            <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
+              <span>◈</span>
+              <span>Session Memory</span>
+            </div>
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-[#6F7C8B]">Events</span>
+              <span className="text-[#43C174]">{sessionEvents.length}</span>
+            </div>
+            <div className="h-1.5 bg-[#263140] rounded overflow-hidden">
+              <div className="h-full bg-[#43C174] rounded-sm transition-all" style={{ width: `${Math.min(sessionEvents.length, 100)}%` }}></div>
+            </div>
+            <div className="mt-2 pt-2 border-t border-[#263140] text-[10px] text-[#6F7C8B] flex justify-between">
+              <span>Storage</span>
+              <span className="text-[#43C174]">Browser</span>
+            </div>
+          </div>
+
+          {/* Latest Action */}
+          <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
+            <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
+              <span>◎</span>
+              <span>Latest Action</span>
+            </div>
+            <p className="text-sm text-[#E6EDF5] font-mono">{mission.lastCommand || "none"}</p>
+            <div className="mt-2 pt-2 border-t border-[#263140] text-[10px] text-[#6F7C8B]">
+              <span>Mode: </span>
+              <span className="text-[#F47A20]">{mode}</span>
+            </div>
+          </div>
+
+          {/* Command Count */}
+          <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
+            <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
+              <span>▤</span>
+              <span>Command Count</span>
+            </div>
+            <div className="text-2xl font-bold text-[#F47A20]">{sessionEvents.filter(e => e.type === "command_executed").length}</div>
+            <div className="text-[10px] text-[#6F7C8B] mt-1">commands this session</div>
+          </div>
+
+          {/* Mode History */}
+          <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
+            <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
+              <span>⧉</span>
+              <span>Mode History</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {sessionEvents.filter(e => e.type === "mode_changed" && e.mode).slice(-5).reverse().map((event, idx) => (
+                <span key={idx} className="text-[10px] px-2 py-1 bg-[#F47A20]/20 rounded text-[#F47A20]">
+                  {event.mode}
+                </span>
+              ))}
+              {sessionEvents.filter(e => e.type === "mode_changed").length === 0 && (
+                <span className="text-[10px] text-[#6F7C8B]">No mode changes</span>
+              )}
+            </div>
+          </div>
+
+          {/* Local Memory Status */}
+          <div className="p-4 bg-[#151D27] rounded-lg border border-[#263140]">
+            <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
+              <span>⏺</span>
+              <span>Local Memory Status</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#43C174]"></span>
+              <span className="text-xs text-[#43C174]">Saved to browser</span>
+            </div>
+            <div className="mt-2 pt-2 border-t border-[#263140] text-[10px] text-[#6F7C8B]">
+              <span>Key: kah-prime-session-memory-v1</span>
+            </div>
+          </div>
+
+          {/* Next Recommended Step */}
+          <div className="p-4 bg-[#151D27] rounded-lg border border-[#F47A20]/30">
+            <div className="text-xs text-[#6F7C8B] mb-3 uppercase tracking-wider flex items-center gap-2">
+              <span className="text-[#F47A20]">➤</span>
+              <span>Next Recommended Step</span>
+            </div>
+            <p className="text-sm text-[#E6EDF5]">
+              {mode === "Plan" && "Run /build to activate Build mode"}
+              {mode === "Build" && "Run /verify to activate Verify mode"}
+              {mode === "Verify" && "Use /summary to review session"}
+            </p>
+            <div className="mt-2 pt-2 border-t border-[#263140] text-[10px] text-[#6F7C8B]">
+              <span>Or type /help for all commands</span>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { CardType } from "@/lib/types";
+import CommandResponseCard from "./CommandResponseCard";
 
 interface MessageBubbleProps {
   type: "user" | "agent" | "system";
@@ -47,21 +48,7 @@ export default function MessageBubble({ type, content, timestamp, artifact, card
       );
     }
 
-    const cardStyles: Record<CardType, string> = {
-      "command-menu": "font-mono text-xs text-[#43C174] bg-[#0F141B] border-[#43C174]/30",
-      "status-card": "font-mono text-xs text-[#A9B4C0] bg-[#121922] border-[#263140]",
-      "git-card": "font-mono text-xs text-[#A9B4C0] bg-[#121922] border-[#263140]",
-      "health-card": "font-mono text-xs text-[#A9B4C0] bg-[#121922] border-[#263140]",
-      "checklist-card": "font-mono text-xs text-[#43C174] bg-[#121922] border-[#263140]",
-      "log-card": "font-mono text-xs text-[#6F7C8B] bg-[#0F141B] border-[#263140]",
-      "plain": "text-sm text-[#E6EDF5]",
-    };
-
-    return (
-      <pre className={`p-3 rounded-lg border ${cardStyles[cardType]} overflow-x-auto`}>
-        {content}
-      </pre>
-    );
+    return <CommandResponseCard cardType={cardType} content={content} />;
   };
 
   return (

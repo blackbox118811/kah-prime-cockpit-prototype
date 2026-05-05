@@ -1,5 +1,6 @@
-import { CommandResult, Message, CockpitMode, WorkflowStep, CardType } from "./types";
+import { CommandResult, Message, CockpitMode, WorkflowStep, CardType, SessionEvent, MissionMemory, SessionSummary } from "./types";
 import { cockpitContext } from "./cockpitContext";
+import { deriveMissionMemory, deriveSessionSummary } from "./sessionMemory";
 
 const getTime = () => {
   const now = new Date();
@@ -17,21 +18,34 @@ const createMessage = (type: Message["type"], content: string, cardType?: CardTy
   missionUpdate,
 });
 
-export const executeCommand = (input: string, currentMode: CockpitMode, currentWorkflow: WorkflowStep, currentMission: string, currentProgress: number): CommandResult => {
+export const executeCommand = (
+  input: string,
+  currentMode: CockpitMode,
+  currentWorkflow: WorkflowStep,
+  currentMission: string,
+  currentProgress: number,
+  sessionEvents: SessionEvent[] = []
+): CommandResult => {
   const trimmed = input.trim().toLowerCase();
 
   switch (trimmed) {
     case "/help": {
-      const helpContent = `┌─ Available Commands ──────────────┐
-│ /status   │ Show cockpit status   │
-│ /plan     │ Activate Plan mode    │
-│ /build    │ Activate Build mode   │
-│ /verify   │ Activate Verify mode  │
-│ /git      │ Show Git status       │
-│ /health   │ Show system health    │
-│ /clear    │ Clear message feed    │
-└───────────────────────────────────┘
-Normal text is treated as operator input.`;
+      const helpContent = `┌─ Available Commands ───────────────────┐
+│ /status        │ Show cockpit status      │
+│ /plan          │ Activate Plan mode       │
+│ /build         │ Activate Build mode      │
+│ /verify        │ Activate Verify mode     │
+│ /git           │ Show Git status          │
+│ /health        │ Show system health       │
+│ /clear         │ Clear message feed       │
+│ /memory        │ Show session memory      │
+│ /log           │ Show session events      │
+│ /summary       │ Show session summary     │
+│ /timeline      │ Show event timeline      │
+│ /reset-session │ Reset session memory     │
+└────────────────────────────────────────────┘
+Normal text is treated as operator input.
+⚠ Stored locally in browser only. No backend sync.`;
       return { message: createMessage("system", helpContent, "command-menu") };
     }
 
@@ -141,6 +155,90 @@ ${cockpitContext.meta.snapshotType}`;
       return {
         message: createMessage("system", "[Feed Cleared] Message history cleared. Current mode preserved: " + currentMode, "log-card"),
         clearFeed: true,
+      };
+    }
+
+    case "/memory": {
+      const memory: MissionMemory = deriveMissionMemory(sessionEvents);
+      const memoryContent = `┌─ Session Memory ────────────────────────┐
+│ Session Start  │ ${memory.sessionStartTime.substring(11, 19).padEnd(21)}│
+│ Command Count │ ${String(memory.commandCount).padEnd(21)}│
+│ Last Command  │ ${(memory.lastCommand || "none").substring(0, 21).padEnd(21)}│
+│ Mode History  │ ${(memory.modeHistory.slice(-3).join(", ") || "none").substring(0, 21).padEnd(21)}│
+│ Events Stored │ ${String(memory.sessionEvents.length).padEnd(21)}│
+└─────────────────────────────────────────────┘
+⚠ Stored locally in browser only. No backend sync.`;
+      return { message: createMessage("agent", memoryContent, "memory-card") };
+    }
+
+    case "/log": {
+      const recentEvents = sessionEvents.slice(-10).reverse();
+      if (recentEvents.length === 0) {
+        return { message: createMessage("agent", "┌─ Session Log ───────────────────────┐\n│ No session events recorded yet.      │\n└──────────────────────────────────────┘", "session-log-card") };
+      }
+      const logLines = recentEvents.map((e) => {
+        const time = e.timestamp.substring(11, 19);
+        const type = e.type.padEnd(16);
+        const label = e.label.substring(0, 20);
+        return `│ ${time} │ ${type} │ ${label} │`;
+      }).join("\n");
+      const logContent = `┌─ Session Log (Last 10) ────────────────┐
+${logLines}
+└─────────────────────────────────────────────┘
+⚠ Stored locally in browser only. No backend sync.`;
+      return { message: createMessage("agent", logContent, "session-log-card") };
+    }
+
+    case "/summary": {
+      const memory: MissionMemory = deriveMissionMemory(sessionEvents);
+      const summary: SessionSummary = deriveSessionSummary(memory);
+      const summaryContent = `┌─ Session Summary ───────────────────────┐
+│ Total Commands   │ ${String(summary.totalCommands).padEnd(18)}│
+│ Total Events     │ ${String(summary.eventCount).padEnd(18)}│
+│ Session Duration │ ${summary.duration.padEnd(18)}│
+├─ Mode Distribution ─────────────────────────┤
+│ Plan             │ ${String(summary.modeDistribution.Plan).padEnd(18)}│
+│ Build            │ ${String(summary.modeDistribution.Build).padEnd(18)}│
+│ Verify           │ ${String(summary.modeDistribution.Verify).padEnd(18)}│
+├─ Top Commands ──────────────────────────────┤
+${summary.topCommands.map((cmd, i) => `│ ${i + 1}. ${cmd.padEnd(20)}│`).join("\n")}
+└─────────────────────────────────────────────┘
+⚠ Stored locally in browser only. No backend sync.`;
+      return { message: createMessage("agent", summaryContent, "summary-card") };
+    }
+
+    case "/timeline": {
+      const timelineEvents = sessionEvents.slice(-15).reverse();
+      if (timelineEvents.length === 0) {
+        return { message: createMessage("agent", "┌─ Event Timeline ──────────────────────┐\n│ No events in timeline yet.              │\n└──────────────────────────────────────────┘", "timeline-card") };
+      }
+      const timelineLines = timelineEvents.map((e, idx) => {
+        const isLast = idx === 0;
+        const connector = isLast ? "●" : "│";
+        const time = e.timestamp.substring(11, 19);
+        const label = e.label.substring(0, 18);
+        return ` ${connector} ${time} ${label}`;
+      }).join("\n");
+      const timelineContent = `┌─ Event Timeline (Last 15) ─────────────┐
+${timelineLines}
+└─────────────────────────────────────────────┘
+⚠ Stored locally in browser only. No backend sync.`;
+      return { message: createMessage("agent", timelineContent, "timeline-card") };
+    }
+
+    case "/reset-session": {
+      return {
+        message: createMessage("system", `[Session Reset Complete]
+
+Local browser session memory has been cleared.
+Session events cleared.
+Memory wiped from localStorage.
+
+⚠ This only affects local browser storage.
+No backend data was affected.
+
+Type /help for available commands.`, "log-card"),
+        resetSession: true,
       };
     }
 
